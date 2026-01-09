@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Fukushū — Tebak Bunyi</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{font-family:serif;background:#eee;margin:0;padding:20px}
+.container{max-width:420px;margin:auto;background:#fff;border:3px solid #000;padding:20px}
+h1{text-align:center;font-size:20px;margin-bottom:10px}
+.qnum{text-align:center;margin-bottom:10px}
+.kana{font-size:96px;text-align:center;margin:20px 0}
+.options button{
+  width:100%;margin:6px 0;padding:10px;
+  font-size:18px;border:2px solid #000;background:#fff
+}
+.options button.correct{background:#c8f7c5}
+.options button.wrong{background:#f7c5c5}
+.score{text-align:center;margin-top:15px}
+.hidden{display:none}
+
+.modal{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,.6);display:flex;
+  align-items:center;justify-content:center
+}
+.modal-box{
+  background:#fff;padding:20px;border:3px solid #000;
+  max-width:300px;text-align:center
+}
+.modal-box button{
+  margin-top:10px;padding:8px 16px;
+  border:2px solid #000;background:#fff
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+<h1>復習 / ふくしゅう / Fukushū<br>(Latihan Ulang)</h1>
+
+<div class="qnum" id="qnum"></div>
+<div class="kana" id="kana"></div>
+
+<div class="options hidden" id="options"></div>
+
+<div class="score" id="score"></div>
+</div>
+
+<div class="modal hidden" id="modal">
+  <div class="modal-box">
+    <div id="modalText"></div>
+    <button id="modalBtn"></button>
+  </div>
+</div>
+
+<script>
+// ================= BANK HURUF =================
+const bank = [
+{ k:"あ", a:"a" },{ k:"い", a:"i" },{ k:"う", a:"u" },{ k:"え", a:"e" },{ k:"お", a:"o" },
+{ k:"か", a:"ka" },{ k:"き", a:"ki" },{ k:"く", a:"ku" },{ k:"け", a:"ke" },{ k:"こ", a:"ko" },
+{ k:"さ", a:"sa" },{ k:"し", a:"shi" },{ k:"す", a:"su" },{ k:"せ", a:"se" },{ k:"そ", a:"so" },
+{ k:"た", a:"ta" },{ k:"ち", a:"chi" },{ k:"つ", a:"tsu" },{ k:"て", a:"te" },{ k:"と", a:"to" },
+{ k:"な", a:"na" },{ k:"に", a:"ni" },{ k:"ぬ", a:"nu" },{ k:"ね", a:"ne" },{ k:"の", a:"no" },
+{ k:"は", a:"ha" },{ k:"ひ", a:"hi" },{ k:"ふ", a:"fu" },{ k:"へ", a:"he" },{ k:"ほ", a:"ho" },
+{ k:"ア", a:"a" },{ k:"イ", a:"i" },{ k:"ウ", a:"u" },{ k:"エ", a:"e" },{ k:"オ", a:"o" },
+{ k:"カ", a:"ka" },{ k:"キ", a:"ki" },{ k:"ク", a:"ku" },{ k:"ケ", a:"ke" },{ k:"コ", a:"ko" },
+{ k:"サ", a:"sa" },{ k:"シ", a:"shi" },{ k:"ス", a:"su" },{ k:"セ", a:"se" },{ k:"ソ", a:"so" },
+{ k:"タ", a:"ta" },{ k:"チ", a:"chi" },{ k:"ツ", a:"tsu" },{ k:"テ", a:"te" },{ k:"ト", a:"to" },
+{ k:"ナ", a:"na" },{ k:"ニ", a:"ni" },{ k:"ヌ", a:"nu" },{ k:"ネ", a:"ne" },{ k:"ノ", a:"no" },
+{ k:"ハ", a:"ha" },{ k:"ヒ", a:"hi" },{ k:"フ", a:"fu" },{ k:"ヘ", a:"he" },{ k:"ホ", a:"ho" }
+];
+
+// ================= STATE =================
+let q=0, correct=0, wrong=0, resets=0;
+let questions=[];
+
+// ================= BUILD SOAL =================
+function buildQuestions(){
+  questions=[];
+  for(let i=0;i<20;i++){
+    let count = i<10?1:(i<15?2:3);
+    let picks=[];
+    while(picks.length<count){
+      let r=bank[Math.floor(Math.random()*bank.length)];
+      if(!picks.includes(r))picks.push(r);
+    }
+    questions.push({
+      display:picks.map(p=>p.k).join(" "),
+      answer:picks.map(p=>p.a).join(" ")
+    });
+  }
+}
+
+// ================= TAMPIL SOAL =================
+function showQuestion(){
+  document.getElementById("options").innerHTML="";
+  document.getElementById("options").classList.add("hidden");
+
+  let data=questions[q];
+  document.getElementById("kana").innerText=data.display;
+  document.getElementById("qnum").innerText=`Soal ${q+1} / 20`;
+
+  let delay = q<10?0:(q<15?5000:10000);
+  setTimeout(()=>renderOptions(data),delay);
+}
+
+function renderOptions(data){
+  let box=document.getElementById("options");
+  box.classList.remove("hidden");
+
+  let opts=[data.answer];
+  while(opts.length<4){
+    let r=questions[Math.floor(Math.random()*questions.length)].answer;
+    if(!opts.includes(r))opts.push(r);
+  }
+  opts.sort(()=>Math.random()-0.5);
+
+  opts.forEach(o=>{
+    let b=document.createElement("button");
+    b.textContent=o;
+    b.onclick=()=>answer(b,o===data.answer);
+    box.appendChild(b);
+  });
+}
+
+function answer(btn,ok){
+  [...document.querySelectorAll(".options button")].forEach(b=>b.disabled=true);
+  btn.classList.add(ok?"correct":"wrong");
+  ok?correct++:wrong++;
+  q++;
+  if(q<20)setTimeout(showQuestion,800);
+  else finish();
+}
+
+function finish(){
+  if(correct>=15) popup(
+    "Selamat, Anda lulus latihan ini.<br>Teruskan kebiasaan membaca dengan teliti.",
+    "Tutup",()=>closePopup()
+  );
+  else if(resets<3) popup(
+    "Hasil belum memenuhi KKM.<br>Silakan ulangi latihan dengan lebih fokus.",
+    "Reset",()=>reset()
+  );
+  else popup(
+    "Latihan telah diulang beberapa kali.<br>Disarankan beristirahat dan mengulang materi sebelumnya.",
+    "Tutup",()=>closePopup()
+  );
+}
+
+function popup(text,btn,fn){
+  document.getElementById("modalText").innerHTML=text;
+  document.getElementById("modalBtn").innerText=btn;
+  document.getElementById("modalBtn").onclick=fn;
+  document.getElementById("modal").classList.remove("hidden");
+}
+function closePopup(){document.getElementById("modal").classList.add("hidden");}
+function reset(){resets++;correct=0;wrong=0;q=0;buildQuestions();closePopup();showQuestion();}
+
+// INIT
+buildQuestions();
+showQuestion();
+</script>
+</body>
+</html>
